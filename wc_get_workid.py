@@ -6,7 +6,7 @@ import csv
 import json
 
 urlStub = "http://www.worldcat.org/oclc/" # API URL
-headers = {"Accept":"application/ld+json"} # desired format of OCLC data
+headers = {"Accept":"application/ld+json"} # a default format for the OCLC data 
 
 """ 
 Usage: provide a file of oclc numbers as the first parameter and a filename to receive results as a second parameter. 
@@ -25,23 +25,28 @@ class codesList:
             lines.append(line.strip())
         return lines
     
-def get_DOM(query_url):
+def get_DOM(query_url, headers):
     """Accept a URL, retrieve the contents at the URL, return the values. """
+    #to do: 
     q = requests.get(query_url, headers=headers) 
     dom = q.text
     return True, dom
 
 def search(lCodes):
-    #loop through the list of book codes, search WC, write results to output file
+    """Accept a list of item (oclcnum) codes, loop through the list,
+    search Worldcat, return results in a (dictionary?)"""
     for oclcSym in lCodes:
         found = False
         print('code: ',oclcSym)
-        #query = urlStub+oclcSym+'?wskey='+wsKey+"&oclcsymbol="+urllib.quote(libs)
+        #query = urlStub+oclcSym+'?wskey='+wsKey+"&oclcsymbol= \
+        #"+urllib.quote(libs)
         query = urlStub+oclcSym
         #print query,        
-        found, dom = get_DOM(query)
+        found, dom = get_DOM(query, headers)
+        #to do: allow user to choose non-default header 
+        #to do: make a better test for results
         if found:
-            try:
+            try: 
                 graph = json.loads(dom)['@graph']
                 for key in graph:
                     try:
@@ -49,6 +54,7 @@ def search(lCodes):
                     except NoneType:
                         print('no type?')
             except NameError:
+                #something besides @graph or @type? Whaaat
                 print("can't deal with these data: ", dom)
                 #raise
         else:
