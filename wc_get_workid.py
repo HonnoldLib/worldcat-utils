@@ -5,16 +5,18 @@ import requests
 import csv
 import json
 
-urlStub = "http://www.worldcat.org/oclc/"
-headers = {"Accept":"application/ld+json"}
+urlStub = "http://www.worldcat.org/oclc/" # API URL
+headers = {"Accept":"application/ld+json"} # desired format of OCLC data
 
-doc=""" 
+""" 
 Usage: provide a file of oclc numbers as the first parameter and a filename to receive results as a second parameter. 
-Results will be the workids associated withthe oclcnumbers
+Results will be the workids associated with the oclcnumbers
 %prog [inputfile] [outputfile]]
 """
 
 class codesList:
+    """Accept a plaintext file, return a list of the lines stripped of leading 
+    or trailing whitespace """
     def __init__(self, fh):
         self.codeFile = fh
     def listed(self):
@@ -23,7 +25,8 @@ class codesList:
             lines.append(line.strip())
         return lines
     
-def look_up_OCLCNum(query_url):
+def get_DOM(query_url):
+    """Accept a URL, retrieve the contents at the URL, return the values. """
     q = requests.get(query_url, headers=headers) 
     dom = q.text
     return True, dom
@@ -36,7 +39,7 @@ def search(lCodes):
         #query = urlStub+oclcSym+'?wskey='+wsKey+"&oclcsymbol="+urllib.quote(libs)
         query = urlStub+oclcSym
         #print query,        
-        found, dom = look_up_OCLCNum(query)
+        found, dom = get_DOM(query)
         if found:
             try:
                 graph = json.loads(dom)['@graph']
