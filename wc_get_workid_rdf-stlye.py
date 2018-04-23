@@ -6,7 +6,7 @@ from rdflib import Graph, URIRef, Literal, BNode
 
 # retrieving data from the linked data...thing. API?
 url_stub_oclcnum = 'http://www.worldcat.org/oclc/' # API URL for oclcnum
-url_stub_workid = 'http://www.worldcat.org/work/' # API URL for workid
+url_stub_workid = 'http://worldcat.org/entity/work/id/' # API URL for workid
 rdf_data_format = 'application/rdf+xml'
 json_data_format = 'application/ld+json'
 headers_json = {'Accept' : json_data_format} # a default format for the OCLC data
@@ -48,7 +48,6 @@ def get_work_IDs(lCodes):
     #Get the workids
     for oclcSym in lCodes:
         uri = url_stub_oclcnum+oclcSym
-        print(uri)
         rdf_triple_data = get_DOM(uri,headers_rdf)
         graph = Graph()
         try:
@@ -65,15 +64,20 @@ def getOCLC_ISBN_Nums(workids):
     """Loop through workids, get oclcnums
     Loop through oclcnums, look for ebook bookFormat"""
     oclc_nums = []
-    print(workids)
     for workid in workids:
         uri = url_stub_workid+workid
+        print(uri)
         rdf_triple_data = get_DOM(uri,headers_rdf)
+        
+        #print(rdf_triple_data)
         graph = Graph()
-        graph.parse(data=rdf_triple_data, format='application/rdf+xml')
-        for oclcnum, isbn in graph.subject_objects(pred_workid):
-            #print(oclcnum.split('/')[-1], isbn.split('/')[-1])
-            oclc_nums.append([oclcnum.split('/')[-1], isbn.split('/')[-1]])
+        try:
+            graph.parse(data=rdf_triple_data, format=rdf_data_format)
+            for oclcnum, isbn in graph.subject_objects(pred_oclcnum):
+                #print(oclcnum.split('/')[-1], isbn.split('/')[-1])
+                oclc_nums.append([oclcnum.split('/')[-1], isbn.split('/')[-1]])
+        except:
+            print('error')
     return oclc_nums        
         
 if __name__ == "__main__":
@@ -87,6 +91,7 @@ if __name__ == "__main__":
         lCodes = oList.listed()
         workids = get_work_IDs(lCodes)
         oclcnums = getOCLC_ISBN_Nums(workids)
+        print('OCLC Numbers:\n',oclcnums)
         #csv_writer.writerows(results)
         #print(results)
         #write results to a csv(?) file
