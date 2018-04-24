@@ -67,7 +67,7 @@ def get_work_IDs(lCodes):
 def get_OCLC_Nums(workids):
     """Loop through workids, get oclcnums """
     print('Retrieving OCLC Numbers')
-    oclc_nums = []
+    oclc_nums = {}
     graph = Graph()
     for workid in workids:
         uri = url_stub_workid+workid
@@ -75,48 +75,52 @@ def get_OCLC_Nums(workids):
         try:
             graph.parse(data=rdf_triple_data, format=rdf_data_format)
             for workid, oclcnum in graph.subject_objects(pred_oclcnum):
-                #print(oclcnum.split('/')[-1], isbn.split('/')[-1])
-                oclc_nums.append([workid.split('/')[-1], oclcnum.split('/')[-1]])
+                workid = workid.split('/')[-1]
+                oclcnum = oclcnum.split('/')[-1]
+                #add them to a dictionary to de-dupe
+                oclc_nums[oclcnum] = workid
         except:
             print('error')
     return oclc_nums        
 
 def get_eBook_status(wk_id_ocn_pairs,log_file):
-    """Loop through oclcnums, look for ebook bookFormat"""
+    """Loop through oclcnums dictionary, look for ebook bookFormat"""
     print('Retrieving ebook OCLC numbers')
+    ebook_ocns = {}
     graph = Graph()
-    for item in wk_id_ocn_pairs:#list of tuples:workd, oclcnum
-        print('workid:',item[0])
-        oclcnum = item[1]
+    for oclcnum, workid in wk_id_ocn_pairs.items():#Dictionary of key: oclcnum, value: workid
         uri = url_stub_oclcnum+oclcnum
         rdf_triple_data = get_DOM(uri,headers_rdf)
         #log_rdf_data(log_file, rdf_triple_data)
         try:
             graph.parse(data=rdf_triple_data, format=rdf_data_format)
             for subj, pred in graph.subject_predicates(pred_ebook_format):
-                print('oclc: ',subj.split('/')[-1])
+                ocn = subj.split('/')[-1]
+                #add them to a dictionary to de-dupe
+                ebook_ocns[ocn] = workid
         except AttributeError as e:
             #e = sys.exc_info()[0]
             print('Error: %s' %e)
+    return ebook_ocns
 
 def log_rdf_data(file_handle, rdf_data):
+        """A generic file writer for logging generic data (debugging)"""
         with open(file_handle,'a') as fo:
             fo.writelines(rdf_data)
     
-        
 if __name__ == "__main__":
-    fileIn = sys.argv[1]
-    fileOut = sys.argv[2]
-    rdf_test_out = sys.argv[3]
+    fileIn = sys.argv[1] # the input data
+    fileOut = sys.argv[2]# for the output
+    rdf_test_out = sys.argv[3] # a file to stash debugging (rdf) data
     lCodes=[]
     with open(fileIn, 'r') as f_oclc_nums, open(fileOut, 'w', newline='') as \
     f_out:
         csv_writer = csv.writer(f_out)
-        oList = codesList(f_oclc_nums) #read all the OCLC numbers into a list
+        oList = codesList(f_oclc_nums) # read all the OCLC numbers into a list
         lCodes = oList.listed()
-        workids = get_work_IDs(lCodes)
-        oclcnums = get_OCLC_Nums(workids)
-        oclcnum_ebook_status = get_eBook_status(oclcnums,rdf_test_out)        #csv_writer.writerows(results)
-        #print(results)
-        #write results to a csv(?) file
+        workids = get_work_IDs(lCodes) # get the workid associated with each oclcnum
+        oclcnums = get_OCLC_Nums(workids) # get the oclc numbers associated with workids
+        oclcnum_ebooks = get_eBook_status(oclcnums,rdf_test_out)  # get the oclc numbers of ebooks
+        csv_writer.writerows(oclcnum_ebooks.items())  # write ebook oclc numbers to a csv file
+        print('The End')
 
