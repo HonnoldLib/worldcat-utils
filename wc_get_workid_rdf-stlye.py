@@ -95,15 +95,8 @@ def get_eBook_status(wk_id_ocn_pairs,log_file=None):
         try:
             graph.parse(data=rdf_triple_data, format=rdf_data_format)                
             for s,p,o in graph.triples((None,pred_bookFormat,None)):
-                ebook_ocns[s.split('/')[-1]]=o.split('/')[-1]
+                ebook_ocns[s.split('/')[-1]]=[o.split('/')[-1],wk_id_ocn_pairs[s.split('/')[-1]]]
 
-        except AttributeError as e:
-            #e = sys.exc_info()[0]
-            print('Error: %s' %e)
-        except TypeError as e:
-            print('Error: %s' %e)
-        except ValueError as e:
-            print('Error: %s' %e)
         except:
             e = sys.exc_info()[0]
             print('Error: %s' %e)
@@ -142,6 +135,7 @@ if __name__ == "__main__":
         oclc_nums = get_OCLC_Nums(workids) # get the oclc numbers associated with workids
         write_csv_file(['ocn','workid'],'oclc_nums_workids.csv', oclc_nums)
         oclcnum_ebooks = get_eBook_status(oclc_nums,rdf_test_out)  # get the oclc numbers of ebooks
+        print(oclcnum_ebooks)
         write_csv_file(['ocn','bookFormat'],file_out, oclcnum_ebooks)  # write ebook oclc numbers to a csv file
         print('The End')
 
