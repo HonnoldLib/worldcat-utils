@@ -114,14 +114,22 @@ def pretty_print_graph(file_handle, graph):
             fh.write(t)
     
 def write_csv_file(field_names,file_handle, dict_data):
-    """A generic csv file writer for logging dictionary data (debugging)"""
+    """A generic csv file writer for logging dictionary data"""
     with open(file_handle,'w', newline='') as fo:
         writer = csv.writer(fo, delimiter='|')
         writer.writerow(field_names)
         for key in dict_data:
             #print(item)
-            writer.writerow([key,dict_data[key]])
-            
+            try:
+                if isinstance(dict_data[key],str):#is the value a string?
+                    writer.writerow([key,dict_data[key]])
+                else:
+                    writer.writerow([key,*dict_data[key]])# if not, it's probably a list                    
+            except: 
+                e = sys.exc_info()[0]
+                print('Error: %s' %e)
+
+
 if __name__ == "__main__":
     file_in = sys.argv[1] # the input data
     file_out = sys.argv[2]# for the output
@@ -135,7 +143,6 @@ if __name__ == "__main__":
         oclc_nums = get_OCLC_Nums(workids) # get the oclc numbers associated with workids
         write_csv_file(['ocn','workid'],'oclc_nums_workids.csv', oclc_nums)
         oclcnum_ebooks = get_eBook_status(oclc_nums,rdf_test_out)  # get the oclc numbers of ebooks
-        print(oclcnum_ebooks)
-        write_csv_file(['ocn','bookFormat'],file_out, oclcnum_ebooks)  # write ebook oclc numbers to a csv file
+        write_csv_file(['ocn','bookFormat','workid'],file_out, oclcnum_ebooks)  # write ebook oclc numbers to a csv file
         print('The End')
 
