@@ -4,6 +4,7 @@ import sys
 import requests
 from rdflib import Graph, URIRef
 
+ERROR_FILE = 'error.log'
 # retrieving data from the linked data...thing. API?
 url_stub_oclcnum = 'http://www.worldcat.org/oclc/' # API URL for oclcnum
 url_stub_isbn = 'http://worldcat.org/isbn/'
@@ -57,7 +58,9 @@ def get_work_IDs(ocns):
     print('Retrieving OCLC workids')
     work_ids = {}
     #Get the workids
-    for oclc_sym in ocns:
+    num_ids = len(ocns)
+    for i, oclc_sym in enumerate(ocns):
+        print_status(i,num_ids,oclc_sym)
         uri = url_stub_oclcnum+oclc_sym
         rdf_triple_data = get_DOM(uri,headers_rdf)
         graph = Graph()
@@ -65,9 +68,13 @@ def get_work_IDs(ocns):
             graph.parse(data=rdf_triple_data, format=rdf_data_format)
             for oclcnum, workid in graph.subject_objects(pred_workid):
                 work_ids[oclc_sym]=workid.split('/')[-1]
-        except TypeError as te: #occasionally saw this error.
-            print("TypeError ",uri, te)
-            print(rdf_triple_data)
+        except TypeError as te: #occasionally see this error. 
+            error_line = 'get_work_IDs:'+str(te)
+            #print('\nTypeError:{} \n URI: {}'.format(te,uri))
+            log_error(error_line,uri)
+        except:
+            e = 'get_work_IDs:' + sys.exc_info()[0]
+            log_error(e,uri)            
     return work_ids
 
 def get_OCLC_Nums(workids):
@@ -75,20 +82,26 @@ def get_OCLC_Nums(workids):
     print('Retrieving OCLC Numbers for Work')
     oclc_nums = {}
     graph = Graph()
-    for workid in workids.values():
+    num_ids = len(workids)
+    for i, workid in enumerate(workids.values()):
+        print_status(i,num_ids, workid)
         uri = url_stub_workid + workid
         rdf_triple_data = get_DOM(uri,headers_rdf)
         try:
             graph.parse(data=rdf_triple_data, format=rdf_data_format)
             for wid, ocn in graph.subject_objects(pred_workExample):
-                w = wid.split('/')[-1]# take just the workid off the uri
+                w = wid.split('/')[-1] # take just the workid off the uri
                 o = ocn.split('/')[-1] # take just the ocn off the uri
                 #add them to a dictionary to de-dupe
                 oclc_nums[o] = w
                 #print(oclcnum, oclc_nums[oclcnum])
+        except TypeError as te:
+            error_line = 'get_OCLC_Nums:'+str(te)
+            #print('\nTypeError:{} \n URI: {}'.format(te,uri))
+            log_error(error_line,uri)
         except:
-            e = sys.exc_info()[0]
-            print('Error: %s' %e)
+            e = 'get_OCLC_Nums:' + sys.exc_info()[0]
+            log_error(e,uri)
     return oclc_nums        
 
 def get_bookFormat(wk_id_ocn_pairs,log_file=None):
@@ -99,35 +112,45 @@ def get_bookFormat(wk_id_ocn_pairs,log_file=None):
     num_ids = len(wk_id_ocn_pairs)
     for i, oclc_num in enumerate(wk_id_ocn_pairs.keys()):#Dictionary of key: oclcnum, value: workid
         print_status(i,num_ids,oclc_num) # give a progress status
-        uri = url_stub_oclcnum+oclc_num
-        rdf_triple_data = get_DOM(uri,headers_rdf)
+        uri = url_stub_oclcnum+oclc_num # build the uri to get the rdf data
+        rdf_triple_data = get_DOM(uri,headers_rdf) # get the uri
+        #log_data(log_file, rdf_triple_data)# debugging. Comment out 
         try:
-            graph.parse(data=rdf_triple_data, format=rdf_data_format)                
-            for subj, pred, obj in graph.triples((None,pred_bookFormat,None)):
-                s= subj.split('/')[-1]
-                o= obj.split('/')[-1]
+            graph.parse(data=rdf_triple_data, format=rdf_data_format) # read the results
+            #pretty_print_graph('delme_graph.txt', graph) #debugging. Comment out
+            for subj, pred, obj in graph.triples((None,pred_bookFormat,None)): #filter
+                s= subj.split('/')[-1] # take just the subject value 
+                o= obj.split('/')[-1] # take just the object value
                 ebook_ocns[s]=[o,wk_id_ocn_pairs[s]]
-
+        except TypeError as te: 
+            error_line = 'get_bookFormat:'+str(te)
+            #print('\nTypeError:{} \n URI: {}'.format(te,uri))
+            log_error(error_line,uri)
         except:
-            e = sys.exc_info()[0]
-            print('Error: %s' %e)
+            e = 'get_bookFormat:' + sys.exc_info()[0]
+            log_error(e,uri)
     return ebook_ocns
 
 def log_data(file_handle, rdf_data):
         """A generic file writer for logging generic data (debugging)"""
-        with open(file_handle,'a') as fo:
+        with open(file_handle,'a', encoding="utf-8") as fo:
             fo.writelines(rdf_data)
 
+def log_error(err, data):
+        """A generic file writer for logging error codes and data (debugging)"""
+        with open(ERROR_FILE,'a', encoding="utf-8") as fo:
+            fo.write('Error: {} \nData:{}'.format(err,data))
+            
 def pretty_print_graph(file_handle, graph):
     """print rdf graph to a human readable file for convenience/debugging""" 
-    with open(file_handle, 'a') as fh:
+    with open(file_handle, 'a', encoding="utf-8") as fh:
         for subj, pred, obj in graph: 
             t= 's: ' + subj + '\np: ' + pred + '\no: ' + obj+ '\n\n'
             fh.write(t)
     
 def write_csv_file(field_names,file_handle, dict_data):
     """A generic csv file writer for logging dictionary data"""
-    with open(file_handle,'w', newline='') as fo:
+    with open(file_handle,'w', encoding="utf-8", newline='') as fo:
         writer = csv.writer(fo, delimiter='|')
         writer.writerow(field_names)
         for key in dict_data:
@@ -153,7 +176,7 @@ if __name__ == "__main__":
         write_csv_file(['ocn','workid'],'source_ocn_workid.csv',workids)
         oclc_nums = get_OCLC_Nums(workids) # get the oclc numbers associated with workids
         print('Found %s items' % len(oclc_nums))
-        write_csv_file(['ocn','workid'],'oclc_nums_workids.csv', oclc_nums)
+        write_csv_file(['ocn','workid'],'oclc_nums_workids_sample100.csv', oclc_nums)
         oclcnum_ebooks = get_bookFormat(oclc_nums,rdf_test_out)  # get the oclc numbers of ebooks
         write_csv_file(['ocn','bookFormat','workid'],file_out, oclcnum_ebooks)  # write ebook oclc numbers to a csv file
         print('The End')
