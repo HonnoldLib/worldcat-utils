@@ -5,6 +5,8 @@ import requests
 from rdflib import Graph, URIRef
 
 ERROR_FILE = 'error.log'
+OCLC_WORKID_FILE = 'ocns_workids.csv'
+OCN_WORKID_SOURCE_FILE = 'source_ocn_workid.csv'
 # retrieving data from the linked data...thing. API?
 url_stub_oclcnum = 'http://www.worldcat.org/oclc/' # API URL for oclcnum
 url_stub_isbn = 'http://worldcat.org/isbn/'
@@ -73,8 +75,9 @@ def get_work_IDs(ocns):
             #print('\nTypeError:{} \n URI: {}'.format(te,uri))
             log_error(error_line,uri)
         except:
-            e = 'get_work_IDs:' + sys.exc_info()[0]
+            e = 'get_work_IDs:' + str(sys.exc_info()[0])
             log_error(e,uri)            
+    print('\n')
     return work_ids
 
 def get_OCLC_Nums(workids):
@@ -100,8 +103,9 @@ def get_OCLC_Nums(workids):
             #print('\nTypeError:{} \n URI: {}'.format(te,uri))
             log_error(error_line,uri)
         except:
-            e = 'get_OCLC_Nums:' + sys.exc_info()[0]
+            e = 'get_OCLC_Nums:' + str(sys.exc_info()[0])
             log_error(e,uri)
+    print('\n')
     return oclc_nums        
 
 def get_bookFormat(wk_id_ocn_pairs,log_file=None):
@@ -127,9 +131,11 @@ def get_bookFormat(wk_id_ocn_pairs,log_file=None):
             #print('\nTypeError:{} \n URI: {}'.format(te,uri))
             log_error(error_line,uri)
         except:
-            e = 'get_bookFormat:' + sys.exc_info()[0]
+            e = 'get_bookFormat:' + str(sys.exc_info()[0])
             log_error(e,uri)
+    print('\n')
     return ebook_ocns
+    
 
 def log_data(file_handle, rdf_data):
         """A generic file writer for logging generic data (debugging)"""
@@ -139,7 +145,7 @@ def log_data(file_handle, rdf_data):
 def log_error(err, data):
         """A generic file writer for logging error codes and data (debugging)"""
         with open(ERROR_FILE,'a', encoding="utf-8") as fo:
-            fo.write('Error: {} \nData:{}'.format(err,data))
+            fo.write('Error: {} \nData:{}\n\n'.format(err,data))
             
 def pretty_print_graph(file_handle, graph):
     """print rdf graph to a human readable file for convenience/debugging""" 
@@ -173,10 +179,10 @@ if __name__ == "__main__":
         oList = codesList(f_oclc_nums) # read all the OCLC numbers into a list
         ocns = oList.listed()
         workids = get_work_IDs(ocns) # get the workid associated with each oclcnum
-        write_csv_file(['ocn','workid'],'source_ocn_workid.csv',workids)
+        write_csv_file(['ocn','workid'],OCN_WORKID_SOURCE_FILE,workids)
         oclc_nums = get_OCLC_Nums(workids) # get the oclc numbers associated with workids
         print('Found %s items' % len(oclc_nums))
-        write_csv_file(['ocn','workid'],'oclc_nums_workids_sample100.csv', oclc_nums)
+        write_csv_file(['ocn','workid'],OCLC_WORKID_FILE, oclc_nums)
         oclcnum_ebooks = get_bookFormat(oclc_nums,rdf_test_out)  # get the oclc numbers of ebooks
         write_csv_file(['ocn','bookFormat','workid'],file_out, oclcnum_ebooks)  # write ebook oclc numbers to a csv file
         print('The End')
