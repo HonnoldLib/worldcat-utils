@@ -25,7 +25,7 @@ obj_ebook = URIRef(u'http://schema.org/EBook')
 Usage: provide a file of oclc numbers or workids as the first parameter and a 
 filename to receive results as a second parameter. 
 Results will be the workids associated with the oclcnumbers
-%prog [inputfile] [outputfile]]
+%prog [inputfile] [outputfile] [logfile]]]
 """
 
 class codesList:
@@ -39,6 +39,11 @@ class codesList:
             lines.append(line.strip())
         return lines
 
+def print_status(numcodes, totalNum, msg): #progress indicator
+    """status printing utility for long-running scripts"""
+    print('Record: {} / {} {:>20}\r'.format(numcodes, totalNum, msg), end='\r'),
+    sys.stdout.flush() 
+    
 def get_DOM(query_url, headers):
     """Accept a URL, retrieve the contents at the URL, return the values. """
     #to do: 
@@ -91,7 +96,9 @@ def get_bookFormat(wk_id_ocn_pairs,log_file=None):
     print('Retrieving ebook workExample numbers')
     ebook_ocns = {}
     graph = Graph()
-    for oclc_num in wk_id_ocn_pairs.keys():#Dictionary of key: oclcnum, value: workid
+    num_ids = len(wk_id_ocn_pairs)
+    for i, oclc_num in enumerate(wk_id_ocn_pairs.keys()):#Dictionary of key: oclcnum, value: workid
+        print_status(i,num_ids,oclc_num) # give a progress status
         uri = url_stub_oclcnum+oclc_num
         rdf_triple_data = get_DOM(uri,headers_rdf)
         try:
@@ -145,6 +152,7 @@ if __name__ == "__main__":
         workids = get_work_IDs(ocns) # get the workid associated with each oclcnum
         write_csv_file(['ocn','workid'],'source_ocn_workid.csv',workids)
         oclc_nums = get_OCLC_Nums(workids) # get the oclc numbers associated with workids
+        print('Found %s items' % len(oclc_nums))
         write_csv_file(['ocn','workid'],'oclc_nums_workids.csv', oclc_nums)
         oclcnum_ebooks = get_bookFormat(oclc_nums,rdf_test_out)  # get the oclc numbers of ebooks
         write_csv_file(['ocn','bookFormat','workid'],file_out, oclcnum_ebooks)  # write ebook oclc numbers to a csv file
