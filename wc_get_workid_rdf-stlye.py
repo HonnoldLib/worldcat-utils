@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import argparse
 import csv
 import sys
 import requests
@@ -82,7 +83,7 @@ def get_work_IDs(ocns):
 
 def get_OCLC_Nums(workids):
     """Loop through workids list, return a dictionary of {oclcnum:workid} """
-    print('Retrieving OCLC Numbers for Work')
+    print('Retrieving OCLC Numbers for WorkIDs')
     oclc_nums = {}
     graph = Graph()
     num_ids = len(workids)
@@ -110,7 +111,7 @@ def get_OCLC_Nums(workids):
 
 def get_bookFormat(wk_id_ocn_pairs,log_file=None):
     """Loop through oclcnums dictionary, look for bookFormat"""
-    print('Retrieving ebook workExample numbers')
+    print('Retrieving ebook workExample OCLC Numbers')
     ebook_ocns = {}
     graph = Graph()
     num_ids = len(wk_id_ocn_pairs)
@@ -130,6 +131,10 @@ def get_bookFormat(wk_id_ocn_pairs,log_file=None):
             error_line = 'get_bookFormat:'+str(te)
             #print('\nTypeError:{} \n URI: {}'.format(te,uri))
             log_error(error_line,uri)
+        except KeyError as ke:
+            error_line = 'get_bookFormat:'+str(te)
+            #print('\nTypeError:{} \n URI: {}'.format(te,uri))
+            log_error(error_line,uri)            
         except:
             e = 'get_bookFormat:' + str(sys.exc_info()[0])
             log_error(e,uri)
@@ -168,9 +173,10 @@ def write_csv_file(field_names,file_handle, dict_data):
             except: 
                 e = sys.exc_info()[0]
                 print('Error: %s' %e)
-
+def 
 
 if __name__ == "__main__":
+    args = argparse.ArgumentParser(description='Process some integers.')
     file_in = sys.argv[1] # the input data
     file_out = sys.argv[2]# for the output
     rdf_test_out = sys.argv[3] # a file to stash debugging (rdf) data
