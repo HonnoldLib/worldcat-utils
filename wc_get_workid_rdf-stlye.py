@@ -132,7 +132,7 @@ def get_bookFormat(wk_id_ocn_pairs,log_file=None):
             #print('\nTypeError:{} \n URI: {}'.format(te,uri))
             log_error(error_line,uri)
         except KeyError as ke:
-            error_line = 'get_bookFormat:'+str(te)
+            error_line = 'get_bookFormat:'+str(ke)
             #print('\nTypeError:{} \n URI: {}'.format(te,uri))
             log_error(error_line,uri)            
         except:
