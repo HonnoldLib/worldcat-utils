@@ -173,7 +173,6 @@ def write_csv_file(field_names,file_handle, dict_data):
             except: 
                 e = sys.exc_info()[0]
                 print('Error: %s' %e)
-def 
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description='Process some integers.')
