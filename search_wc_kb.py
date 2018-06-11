@@ -24,21 +24,29 @@ def get_URL(inst_id,start_pos):
                       ITEMS_PP,CONTENT_TYPE,WSKEY)
     return url
 
-def get_KB_Data(url, headers):
+def get_KB_Data(url):
     try:
-        q = requests.get(url, headers)
+        q = requests.get(url, HEADERS_JSON)
         return q
     except:
         print('error in request: {}'.format(sys.exc_info()[0]))
         return ''
     
+def parse_json_to_dict(text_data):
+    try:
+        results = json.loads(text_data)
+        return results
+    except:
+        print('error parsing json result: {}'.format(sys.exc_info()[0]))
+        return ''        
+
 if __name__ == '__main__':
     with open('delme.txt', 'w', encoding='utf-8') as result_file:
         for start_i in range(0,MAX_RES,ITEMS_PP):
             #build a URL with updated values for start-index (and others as wanted)
             institution_id = INST_ID
             url = get_URL(institution_id, start_i)
-            q = requests.get(url,headers=HEADERS_JSON)
+            q = get_URL(url)
             results = json.loads(q.text)
             for i, entry in enumerate(results['entries']):
                 try:
