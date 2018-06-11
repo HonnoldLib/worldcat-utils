@@ -5,6 +5,7 @@ electronic resources.
 Usage: %prog inputfile outputfile
 """
 import json
+import logging
 import requests
 import sys
 
@@ -18,15 +19,20 @@ URL_STUB = 'http://worldcat.org/webservices/kb/rest/entries/search?'
 WSKEY='xAW2qDuioeBKBdIPHuUrBNPGqk78NmUsaB8LP2BERjpClphypY9Nn92E2tesAgCvmY0G6bbM5DzaQSPS'
 info =[]
 
-def get_URL(inst_id,start_pos):
+def print_status(numcodes, totalNum, msg): #progress indicator
+    """status printing utility for long-running scripts"""
+    print('{} {} {}\r'.format(numcodes, totalNum, msg), end='\r'),
+    sys.stdout.flush() 
+    
+def get_URL(start_pos):
     url = URL_STUB+'institution_id={}&start-index={}&max-results={}&itemsPerPage={}' \
-            '&content={}&wskey={}'.format(inst_id,start_pos,MAX_RES,
+            '&content={}&wskey={}'.format(INST_ID,start_pos,MAX_RES,
                       ITEMS_PP,CONTENT_TYPE,WSKEY)
     return url
 
 def get_KB_Data(url):
     try:
-        q = requests.get(url, HEADERS_JSON)
+        q = requests.get(url, headers=HEADERS_JSON)
         return q
     except:
         print('error in request: {}'.format(sys.exc_info()[0]))
@@ -38,25 +44,25 @@ def parse_json_to_dict(text_data):
         return results
     except:
         print('error parsing json result: {}'.format(sys.exc_info()[0]))
-        return ''        
+        logging.exception('unexpected error parsing json result')
+        return {}        
 
 if __name__ == '__main__':
     with open('delme.txt', 'w', encoding='utf-8') as result_file:
         for start_i in range(0,MAX_RES,ITEMS_PP):
             #build a URL with updated values for start-index (and others as wanted)
-            institution_id = INST_ID
-            url = get_URL(institution_id, start_i)
-            q = get_URL(url)
-            results = json.loads(q.text)
+            url = get_URL(start_i)
+            q = get_KB_Data(url)
+            results = parse_json_to_dict(q.text)
+            #add results to a dictionary, and finally to a file
             for i, entry in enumerate(results['entries']):
                 try:
                     info.append('{}{}{}'.format(str(entry['title']).strip(),'|',
                                 entry['kb:provider_name']))
+                    print_status(start_i, i, MAX_RES)
                 except AttributeError as ae:
                     print(ae, entry)
-                except KeyError as ke:
+                except KeyError as ke: #todo: add a null value for missing keys
                     print(ke, entry)
+
         result_file.write('\n'.join(info))
-            #    for e, key in enumerate(entry.keys()):
-            #        print('{}:{}: {}'.format(i,key,entry[key]))
-                #print('{}: {}{}'.format(str(i), entry['title'],'\n'))

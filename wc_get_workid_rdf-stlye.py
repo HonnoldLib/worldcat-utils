@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-import argparse
 import csv
 import sys
 import requests
@@ -23,6 +22,7 @@ headers_rdf = {'Accept': rdf_data_format}
 pred_workid = URIRef(u'http://schema.org/exampleOfWork')
 pred_workExample = URIRef(u'http://schema.org/workExample')
 pred_bookFormat = URIRef(u'http://schema.org/bookFormat')
+pred_bib_bookFormat = URIRef(u'http://bibliograph.net/PrintBook')
 obj_ebook = URIRef(u'http://schema.org/EBook')
 
 """ 
@@ -129,15 +129,25 @@ def get_bookFormat(wk_id_ocn_pairs,log_file=None):
                 ebook_ocns[s]=[o,wk_id_ocn_pairs[s]]
         except TypeError as te: 
             error_line = 'get_bookFormat:'+str(te)
-            #print('\nTypeError:{} \n URI: {}'.format(te,uri))
+            print('\nTypeError:{} \n URI: {}'.format(te,uri))
             log_error(error_line,uri)
+            for subj, pred, obj in graph.triples((None,pred_bib_bookFormat,None)): #filter
+                s= subj.split('/')[-1] # take just the subject value 
+                o= obj.split('/')[-1] # take just the object value
+                #ebook_ocns[s]=[o,wk_id_ocn_pairs[s]]            
+                print('Subj:{}, Obj:{}'.format(subj,obj))
         except KeyError as ke:
             error_line = 'get_bookFormat:'+str(ke)
-            #print('\nTypeError:{} \n URI: {}'.format(te,uri))
+            print('\nKeyError:{} \n URI: {}'.format(ke,uri))
             log_error(error_line,uri)            
         except:
             e = 'get_bookFormat:' + str(sys.exc_info()[0])
             log_error(e,uri)
+            for subj, pred, obj in graph.triples((None,pred_bib_bookFormat,None)): #filter
+                s= subj.split('/')[-1] # take just the subject value 
+                o= obj.split('/')[-1] # take just the object value
+                #ebook_ocns[s]=[o,wk_id_ocn_pairs[s]]            
+                print('Subj:{}, Obj:{}'.format(subj,obj))          
     print('\n')
     return ebook_ocns
     
@@ -175,14 +185,13 @@ def write_csv_file(field_names,file_handle, dict_data):
                 print('Error: %s' %e)
 
 if __name__ == "__main__":
-    args = argparse.ArgumentParser(description='Process some integers.')
     file_in = sys.argv[1] # the input data
     file_out = sys.argv[2]# for the output
     rdf_test_out = sys.argv[3] # a file to stash debugging (rdf) data
     ocns=[]
     with open(file_in, 'r') as f_oclc_nums:
         oList = codesList(f_oclc_nums) # read all the OCLC numbers into a list
-        ocns = oList.listed()
+        ocns = oList.listed() # clean up the list entries
         workids = get_work_IDs(ocns) # get the workid associated with each oclcnum
         write_csv_file(['ocn','workid'],OCN_WORKID_SOURCE_FILE,workids)
         oclc_nums = get_OCLC_Nums(workids) # get the oclc numbers associated with workids
